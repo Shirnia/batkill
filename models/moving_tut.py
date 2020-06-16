@@ -4,7 +4,7 @@ import os
 import random
 
 from models.helpers import generator_from_formatter, image_generator
-from models.standardplayer import StandardPlayer, MOVE_LEFT, MOVE_RIGHT, JUMP, ATTACK
+from models.backend_player import StandardPlayer, MOVE_LEFT, MOVE_RIGHT, JUMP, ATTACK
 from models.spritesheet import SpriteSheet
 
 '''
@@ -161,133 +161,99 @@ def maybe_create_bat(current_score, base_prob=50, base_speed=6):
     current_odds = base_prob - current_score/15
     speed = int(base_speed * (1 + current_score / 20))
     if (random.random() * current_odds) + 1 > current_odds:
+        print(f"New bat speed {speed}")
         return Bat(direction=random.choice([-1, 1]), step=speed)
     else:
         return None
 
 
-
-class Game:
-    def __init__(self, render):
-        self.render = render
-        self.worldx = 928
-        self.worldy = 793
-        self.max_bats = 3
-
-        self.lives = 5
-        self.score = 0
-
-        self.fps = 30  # frame rate
-        self.clock = pygame.time.Clock()
-
-        self.world = pygame.display.set_mode([self.worldx, self.worldy])
-        self.backdrop = pygame.image.load(background).convert()
-        self.backdropbox = self.world.get_rect()
-        self.player = Player()  # spawn player
-        self.player_list = pygame.sprite.Group()
-        self.player_list.add(self.player)
-
-        self.score_font = pygame.font.SysFont(os.path.join('static', 'fonts', 'SourceCodePro-Medium.ttf'), 30)
-        self.score_surface = self.score_font.render('Score: 0', False, (0, 0, 0))
-
-        self.loop = 0
-        self.enemies = pygame.sprite.Group()
-        self.running = True
+'''
+Setup
+'''
 
 
-    def get_actions(self):
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                self.running = False
-                sys.exit()
+worldx = 928
+worldy = 793
 
-        player_actions = []
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            player_actions.append(MOVE_LEFT)
-        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            player_actions.append(MOVE_RIGHT)
-        if keys[pygame.K_UP] or keys[pygame.K_w]:
-            player_actions.append(JUMP)
-        if keys[pygame.K_SPACE]:
-            player_actions.append(ATTACK)
-        return player_actions
+lives = 5
+score = 0
 
-    def main_loop(self, actions=None):
-        if actions is None:
-            actions = []
-        self.loop += 1
+fps = 30  # frame rate
+ani = 6  # animation cycles
+clock = pygame.time.Clock()
+pygame.init()
+main = True
 
 
+world = pygame.display.set_mode([worldx, worldy])
+backdrop = pygame.image.load(background).convert()
+backdropbox = world.get_rect()
+player = Player()  # spawn player
+player_list = pygame.sprite.Group()
+player_list.add(player)
+steps = 5  # how fast to move
+pygame.font.init()
+score_font = pygame.font.SysFont(os.path.join('static', 'fonts', 'SourceCodePro-Medium.ttf'), 30)
+score_surface = score_font.render()
 
-        self.player.control(actions)
+'''
+Main loop
+'''
+loop = 0
+enemies = pygame.sprite.Group()
 
-        if self.render:
-            self.world.blit(self.backdrop, self.backdropbox)
-            score_surface = self.score_font.render(f'Score: {self.score}   Lives: {self.lives}', False, (0, 0, 0))
-            self.world.blit(score_surface, (10, 10))
+while main == True:
+    loop += 1
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+            main = False
 
-        if len(self.enemies) < self.max_bats:
-            new_bat = maybe_create_bat(self.score)
-            if new_bat:
-                bat = new_bat
+    player_actions = []
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_LEFT] or keys[pygame.K_a]:
+        player_actions.append(MOVE_LEFT)
+    if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+        player_actions.append(MOVE_RIGHT)
+    if keys[pygame.K_UP] or keys[pygame.K_w]:
+        player_actions.append(JUMP)
+    if keys[pygame.K_SPACE]:
+        player_actions.append(ATTACK)
 
-                self.player_list.add(bat)
-                self.enemies.add(bat)
-        for bat in self.enemies:
-            bat.update()
-            if self.player.sp.attack.attack_poly is not None and not bat.dying:
-                killed = self.player.sp.attack.attack_poly.rect.colliderect(bat.collider_rect)
-                if killed:
-                    bat.die()
-                    self.score += 1
-            if bat.dead or bat.rect.x > self.worldx or bat.rect.x < 0:
-                self.enemies.remove(bat)
-                bat.kill()
-                del bat
-            elif bat.collider_rect is not None and self.player.sp.collider_rect.colliderect(bat.collider_rect):
+    player.control(player_actions)
+    world.blit(backdrop, backdropbox)
+
+    score_surface = score_font.render()
+    world.blit(score_surface, (10, 10))
+    new_bat = maybe_create_bat(score)
+    if new_bat:
+        bat = new_bat
+
+        player_list.add(bat)
+        enemies.add(bat)
+    for bat in enemies:
+        # if bat.collider_rect:
+        #     pygame.draw.rect(world, (128, 0, 0, 200), bat.collider_rect)
+        bat.update()
+        if player.sp.attack.attack_poly is not None and not bat.dying:
+            killed = player.sp.attack.attack_poly.rect.colliderect(bat.collider_rect)
+            if killed:
                 bat.die()
-                self.lives -= 1
-                self.score -= 5
+                score += 1
+        if bat.dead:
+            enemies.remove(bat)
+            bat.kill()
+            del bat
+        elif bat.collider_rect is not None and player.sp.collider_rect.colliderect(bat.collider_rect):
+            bat.die()
+            lives -= 1
+            score -= 5
+            print('Dead')
 
-        self.player.update()
-        if self.render:
-            self.player_list.draw(self.world)
-            self.player_list.draw(self.world)
-            pygame.display.flip()
-            self.clock.tick(self.fps)
+    player_list.draw(world)
+    player.update()
+    player_list.draw(world)
 
-
-
-
-        dct = {
-            'player_x': self.player.sp.x,
-            'player_y': self.player.sp.y,
-        }
-        for idx, bat in enumerate(self.enemies):
-            dct[f'bat_{idx}_alive'] = True
-            dct[f'bat_{idx}_direction'] = bat.direction
-            dct[f'bat_{idx}_x'] = bat.rect.x
-            dct[f'bat_{idx}_speed'] = bat.step
-
-        for idx in range(self.max_bats - len(self.enemies)):
-            idx += len(self.enemies)
-            dct[f'bat_{idx}_alive'] = False
-            dct[f'bat_{idx}_direction'] = 0
-            dct[f'bat_{idx}_x'] = -1
-            dct[f'bat_{idx}_speed'] = 0
-
-
-        return dct, self.score
-
-
-if __name__ == '__main__':
-    # https://stackoverflow.com/questions/58974034/pygame-and-open-ai-implementation
-    pygame.init()
-    pygame.font.init()
-    game = Game(render=False)
-    while game.running:
-        actions = game.get_actions()
-        state, reward = game.main_loop(actions=actions)
-        print(reward, state)
+    pygame.display.flip()
+    clock.tick(fps)

@@ -59,8 +59,8 @@ class Attack:
             if self.attack_state == 0:
                 self.cool_down_state = self.cool_down_duration
                 self.attack_poly = None
-            else:
-                self.attack_poly = self.get_attack_poly(attacker_rect, x_direction)
+            # else:
+            #     self.attack_poly = self.get_attack_poly(attacker_rect, x_direction)
 
     def __repr__(self):
         return f"duration: {self.attack_state}, cooldown: {self.cool_down_state} {repr(self.attack_poly)}"

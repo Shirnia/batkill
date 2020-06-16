@@ -27,3 +27,5 @@ def generator_from_formatter(formatter, max_index, min_index=0, repeats=3, flip=
     paths = [formatter.format(x) for x in range(min_index, max_index)]
     images = [preprocess_image(path, flip) for path in paths]
     return image_generator(images, repeats)
+
+

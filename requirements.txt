@@ -1,0 +1,4 @@
+pygame~1.9
+gym~0.17
+stable-baselines~2.10
+tensorflow~1.14

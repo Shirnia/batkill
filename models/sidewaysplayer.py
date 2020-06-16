@@ -1,5 +1,5 @@
 from models.attack import Attack
-from models.standardplayer import StandardPlayer
+from models.backend_player import StandardPlayer
 
 MOVE_RIGHT = 'MOVE_RIGHT'
 MOVE_LEFT = 'MOVE_LEFT'
