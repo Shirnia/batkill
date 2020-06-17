@@ -11,7 +11,7 @@ class StandardPlayer:
                  ground_y,
                  x_step=8,
                  jump_step=10,
-                 jump_stages=8,
+                 jump_stages=11,
                  min_x=50,
                  max_x=785,
                  render=True,

@@ -9,7 +9,7 @@ from stable_baselines.common.vec_env.util import obs_space_info
 
 model_storage_dir = 'nn_models'
 max_bats = 4
-allow_jump = False
+allow_jump = True
 baseline_model = PPO2
 
 

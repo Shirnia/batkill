@@ -48,6 +48,7 @@ class Game(gym.Env):
             observation_space_dct[f'bat_{idx}_distance_to_player'] = spaces.Box(-1, 1, shape=(1,))
             observation_space_dct[f'bat_{idx}_bat_facing_player'] = spaces.Box(-1, 1, shape=(1,))
             observation_space_dct[f'bat_{idx}_player_facing_bat'] = spaces.Box(-1, 1, shape=(1,))
+            observation_space_dct[f'bat_{idx}_in_attack_range'] = spaces.Box(-1, 1, shape=(1,))
         mins = np.array([x.low[0] for x in observation_space_dct.values()])
         maxs = np.array([x.high[0] for x in observation_space_dct.values()])
 
@@ -132,6 +133,11 @@ class Game(gym.Env):
         self.clock.tick(self.fps)
 
     def _get_obs(self):
+        # rect = pygame.Rect(0, 650, self.worldx, self.worldy-700)
+        # sub = self.world.subsurface(rect)
+        # pygame.image.save(sub, "screenshot.jpg")
+        # pixels = pygame.PixelArray(sub)
+
         dct = {
             'player_x': (self.player.sp.rect.x / self.worldx) * 2 - 1,
             'player_y': (self.player.sp.rect.y / self.worldy) * 2 - 1,
@@ -167,8 +173,23 @@ class Game(gym.Env):
                         player_facing_bat = 1
                     else:
                         player_facing_bat = -1
+                if player_facing_bat > 0:
+                    attack_rect = self.player.sp.attack.get_attack_poly(self.player.sp.rect, self.player.sp.facing).rect
+                    if (
+                            bat.collider_rect and
+                            attack_rect.colliderect(bat.collider_rect) and
+                            self.player.sp.attack.cool_down_state == 0 and
+                            self.player.sp.attack.attack_state == 0
+                    ):
+                        bat_in_range = 1
+                    else:
+                        bat_in_range = -1
+                else:
+                    bat_in_range = -1
+
                 dct[f'bat_{idx}_bat_facing_player'] = bat_facing_player
                 dct[f'bat_{idx}_player_facing_bat'] = player_facing_bat
+                dct[f'bat_{idx}_in_attack_range'] = bat_in_range
 
             else:
                 dct[f'bat_{idx}_alive'] = -1
@@ -178,10 +199,26 @@ class Game(gym.Env):
                 dct[f'bat_{idx}_distance_to_player'] = 0
                 dct[f'bat_{idx}_bat_facing_player'] = 0
                 dct[f'bat_{idx}_player_facing_bat'] = 0
+                dct[f'bat_{idx}_in_attack_range'] = 0
         if self.is_ml:
             return np.array([x for x in dct.values()])
         else:
             return dct
+
+    def check_facing_nearest_bat(self):
+        distance = self.worldx
+        for idx, bat in self.sorted_bats.items():
+            if bat is not None:
+                d = bat.rect.x - self.player.sp.rect.x
+                abs_d = abs(d)
+                if abs_d < abs(distance):
+                    distance = d
+        facing_nearest = (distance > 0 and self.player.sp.facing > 0) or (distance < 0 and self.player.sp.facing < 0)
+        if facing_nearest and len([x for x in self.sorted_bats.values() if x is not None]) > 0:
+            return True
+        else:
+            return False
+
 
     def step(self, action):
         self.loop += 1
@@ -193,10 +230,10 @@ class Game(gym.Env):
         if action is None:
             action = []
         self.actions = action
-        # if ATTACK in action:
-        #     reward -= 0.01
-        # if JUMP in action:
-        #     reward -= 0.01
+        if ATTACK in action:
+            reward -= 0.1
+        if JUMP in action:
+            reward -= 0.2
 
         self.player.control(action)
 
@@ -213,11 +250,18 @@ class Game(gym.Env):
         for idx, bat in self.sorted_bats.items():
             if bat is not None:
                 bat.update()
+                if bat.direction == -1:
+                    if bat.rect.x < self.player.sp.rect.x:
+                        reward += 0.1
+                else:
+                    if bat.rect.x > self.player.sp.rect.x:
+                        reward += 0.1
+
                 if self.player.sp.attack.attack_poly is not None and not bat.dying:
                     killed = self.player.sp.attack.attack_poly.rect.colliderect(bat.collider_rect)
                     if killed:
                         bat.die()
-                        reward += 1
+                        reward += 5
                         attained_score += 1
                 if bat.dead or bat.rect.x > self.worldx or bat.rect.x < 0:
                     self.enemies.remove(bat)
@@ -227,7 +271,12 @@ class Game(gym.Env):
                 elif bat.collider_rect is not None and self.player.sp.collider_rect.colliderect(bat.collider_rect):
                     bat.die()
                     self.lives -= 1
-                    reward -= 1
+                    reward -= 5
+
+
+
+        if self.check_facing_nearest_bat():
+            reward += 0.2
 
         self.score += attained_score
         self.reward = reward
