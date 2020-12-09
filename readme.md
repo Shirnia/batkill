@@ -9,6 +9,9 @@ and you're good to go.
 ## Playing the game
 Run `play.py` WASD to move and jump, and space to attack.
 
+
+![Game preview](https://github.com/python-aficionado/batkill/blob/master/static/captures/human_gameplay.gif?raw=true)
+
 ## Training the model
 Run `model_train.py`, and it should start reporting, you'll just see a black screen, that's expected, don't close it. There are a few variables here that you may want to play with:
 ```python
@@ -32,6 +35,20 @@ Run `model_evaluate.py` and it should pick up the latest model and start playing
 for a newer model, so you can evaluate whilst you train and see the "progress".
 
 The number of max_bats, allow_jump the baseline_model should be the same as on the trained model, but it'll break hard otherwise, so you'll know.
+
+### Trained for 3 million steps
+
+![3M Train](https://github.com/python-aficionado/batkill/blob/master/static/captures/train_0.gif?raw=true)
+
+### Trained for 7 million steps
+
+![7M Train](https://github.com/python-aficionado/batkill/blob/master/static/captures/train_1.gif?raw=true)
+
+### Trained for 1.8 Billion steps
+
+![1.8B Train](https://github.com/python-aficionado/batkill/blob/master/static/captures/train_2.gif?raw=true)
+
+
 
 # Sprite credits
 Forest background: [edermunizz](https://edermunizz.itch.io/free-pixel-art-forest), [CC BY-ND](https://creativecommons.org/licenses/by-nd/4.0)  
