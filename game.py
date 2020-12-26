@@ -84,7 +84,7 @@ class Game(gym.Env):
         self.fps = 30  # frame rate
         self.clock = pygame.time.Clock()
 
-        self.world = pygame.display.set_mode([self.worldx, self.worldy])
+        self.world = pygame.display.set_mode([self.worldx, self.worldy],pygame.HIDDEN)
         self.backdrop = pygame.image.load(background).convert()
         self.backdropbox = self.world.get_rect()
         self.player = Player(adventurer_sprites)  # spawn player
